@@ -75,7 +75,6 @@ BuscaAcomodacoes/
 │   └── Dockerfile               # Dockerfile do back-end
 ├── frontend/        # Front-end com React e TailwindCSS
 │   ├── public/
-│   │   └── index.html           # Ponto de entrada HTML
 │   ├── src/
 │   │   ├── assets/              # Assets (imagens, fontes, etc.)
 │   │   ├── components/          # Componentes React reutilizáveis
@@ -96,6 +95,7 @@ BuscaAcomodacoes/
 │   │   ├── App.css
 │   │   ├── index.css            # Importação do TailwindCSS
 │   │   └── main.jsx             # Ponto de entrada do React
+│   ├── index.html           # Ponto de entrada HTML
 │   ├── package.json             # Dependências Node.js
 │   ├── tailwind.config.js       # Configuração do TailwindCSS
 │   ├── postcss.config.js        # Configuração do PostCSS

@@ -1,0 +1,599 @@
+## index.html
+
+```
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Busca de Acomodações</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
+
+```
+
+## src/components/AccommodationCard.jsx
+
+```
+// src/components/AccommodationCard.jsx
+import React from 'react';
+import FavoriteButton from './FavoriteButton';
+import { Link } from 'react-router-dom';
+
+const AccommodationCard = ({ acomodacao }) => {
+  const { id, nome, cidade, preco, imagem_url } = acomodacao;
+
+  return (
+    <div className="bg-white rounded-lg shadow-md overflow-hidden transform transition duration-300 hover:scale-105 hover:shadow-xl">
+      <Link to={`/acomodacao/${id}`}>
+        <img
+          src={imagem_url}
+          alt={nome}
+          className="w-full h-48 object-cover"
+        />
+      </Link>
+      <div className="p-4">
+        <Link to={`/acomodacao/${id}`}>
+          <h2 className="text-xl font-semibold mb-2">{nome}</h2>
+          <p className="text-gray-600 mb-1">{cidade}</p>
+          <p className="text-green-600 font-bold mb-2">
+            R$ {typeof preco === 'number' ? preco.toFixed(2) : '---'}
+          </p>
+        </Link>
+        <div className="flex justify-end">
+          <FavoriteButton id={id} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AccommodationCard;
+
+```
+
+## src/components/FavoriteButton.jsx
+
+```
+// src/components/FavoriteButton.jsx
+import React, { useState, useEffect } from 'react';
+
+const FavoriteButton = ({ id }) => {
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  // Verifica se o item já está nos favoritos ao montar ou quando o "id" mudar
+  useEffect(() => {
+    const favoritos = JSON.parse(localStorage.getItem('favoritos')) || [];
+    setIsFavorite(favoritos.includes(id));
+  }, [id]);
+
+  const toggleFavorite = (e) => {
+    // Previne que o clique no botão acione a navegação do Link
+    e.stopPropagation();
+    const favoritos = JSON.parse(localStorage.getItem('favoritos')) || [];
+    let updatedFavorites;
+    if (favoritos.includes(id)) {
+      updatedFavorites = favoritos.filter((favId) => favId !== id);
+    } else {
+      updatedFavorites = [...favoritos, id];
+    }
+    localStorage.setItem('favoritos', JSON.stringify(updatedFavorites));
+    setIsFavorite(!isFavorite);
+  };
+
+  return (
+    <button
+      onClick={toggleFavorite}
+      className={`p-2 rounded-full ${isFavorite ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-800'}`}
+      title={isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+    >
+      {isFavorite ? '♥' : '♡'}
+    </button>
+  );
+};
+
+export default FavoriteButton;
+
+```
+
+## src/components/Footer.jsx
+
+```
+// src/components/Footer.jsx
+import React from 'react';
+
+const Footer = () => {
+  return (
+    <footer className="w-full bg-gray-200 text-gray-700 p-4 text-center">
+      <div className="flex flex-col items-center">
+        <span className="font-semibold">Gabriel T. H. S. Santos</span>
+        <span className="text-sm">gabrielthss@gmail.com</span>
+      </div>
+    </footer>
+  );
+};
+
+export default Footer;
+
+```
+
+## src/components/Hero.jsx
+
+```
+// src/components/Hero.jsx
+import React from 'react';
+import SearchBar from './SearchBar';
+
+const Hero = ({ cidade, setCidade }) => {
+  return (
+    <section className="w-full bg-blue-600 text-white py-8 px-4 flex flex-col items-center">
+      <div className="w-full text-center">
+        <h1 className="text-3xl md:text-4xl font-bold mb-3">
+          Encontre o local perfeito para sua próxima viagem
+        </h1>
+        <p className="text-lg mb-5">
+          Pesquise entre diversas acomodações disponíveis para locação de temporada
+        </p>
+        <div className="w-full px-4">
+          <SearchBar cidade={cidade} setCidade={setCidade} isHero />
+        </div>
+      </div>
+    </section>
+  );
+};
+
+export default Hero;
+
+```
+
+## src/components/Layout.jsx
+
+```
+// src/components/Layout.jsx
+import React from 'react';
+import Footer from './Footer';
+
+const Layout = ({ children }) => {
+  return (
+    <div className="flex flex-col min-h-screen w-full">
+      <main className="flex-grow w-full px-4 py-6">
+        {children}
+      </main>
+      <Footer />
+    </div>
+  );
+};
+
+export default Layout;
+
+```
+
+## src/components/Navbar.jsx
+
+```
+// src/components/Navbar.jsx
+import React from 'react';
+import { Link } from 'react-router-dom';
+
+const Navbar = () => {
+  return (
+    <nav className="w-full bg-blue-600 text-white py-4 px-4 flex justify-between items-center">
+      <h1 className="text-xl sm:text-2xl font-bold">Locação de Temporada</h1>
+      <div className="flex space-x-4">
+        <Link to="/" className="hover:underline">Home</Link>
+        <Link to="/favoritos" className="hover:underline">Favoritos</Link>
+      </div>
+    </nav>
+  );
+};
+
+export default Navbar;
+
+```
+
+## src/components/SearchBar.jsx
+
+```
+// src/components/SearchBar.jsx
+import React from 'react';
+import { FiSearch } from 'react-icons/fi';
+
+const SearchBar = ({ cidade, setCidade, isHero = false }) => {
+  /*
+    isHero: boolean que indica se a barra está sendo usada no Hero ou não.
+    Isso permite ajustar algumas classes para visual levemente diferente
+    (por ex. bordas mais espessas, cor do texto, etc.)
+  */
+  return (
+    <div className="relative mb-4">
+      <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+        <FiSearch />
+      </span>
+      <input
+        type="text"
+        value={cidade}
+        onChange={(e) => setCidade(e.target.value)}
+        placeholder="Buscar por cidade..."
+        className={`
+          w-full pl-10 p-3 rounded-md 
+          focus:outline-none focus:ring-2 focus:ring-blue-500
+          ${isHero ? 'border-2 border-white text-gray-800 bg-white' : 'border border-gray-300 text-gray-800'}
+        `}
+      />
+    </div>
+  );
+};
+
+export default SearchBar;
+
+```
+
+## src/components/Spinner.jsx
+
+```
+// src/components/Spinner.jsx
+import React from 'react';
+
+const Spinner = () => {
+  return (
+    <div className="flex justify-center items-center py-8">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+    </div>
+  );
+};
+
+export default Spinner;
+
+```
+
+## src/pages/AccommodationDetails.jsx
+
+```
+// src/pages/AccommodationDetails.jsx
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { getAcomodacaoById } from '../services/api';
+import Spinner from '../components/Spinner';
+
+const AccommodationDetails = () => {
+  const { id } = useParams();
+  const [accommodation, setAccommodation] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAccommodation = async () => {
+      try {
+        const response = await getAcomodacaoById(id);
+        setAccommodation(response.data);
+      } catch (error) {
+        console.error('Erro ao buscar detalhes da acomodação:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAccommodation();
+  }, [id]);
+
+  if (loading) return <Spinner />;
+  if (!accommodation) return <p>Acomodação não encontrada.</p>;
+
+  return (
+    <div className="container mx-auto p-4">
+      <img
+        src={accommodation.imagem_url}
+        alt={accommodation.nome}
+        className="w-full h-64 object-cover rounded-md mb-4"
+      />
+      <h1 className="text-3xl font-bold mb-2">{accommodation.nome}</h1>
+      <p className="text-xl text-gray-700 mb-2">{accommodation.cidade}</p>
+      <p className="text-2xl font-semibold text-green-600 mb-4">
+        R$ {accommodation.preco.toFixed(2)}
+      </p>
+    </div>
+  );
+};
+
+export default AccommodationDetails;
+
+```
+
+## src/pages/Favorites.jsx
+
+```
+// src/pages/Favorites.jsx
+import React, { useState, useEffect } from 'react';
+import { getAcomodacaoById } from '../services/api';
+import AccommodationCard from '../components/AccommodationCard';
+import Spinner from '../components/Spinner';
+
+const Favorites = () => {
+  const [favoriteIds, setFavoriteIds] = useState([]);
+  const [favorites, setFavorites] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Carrega os IDs dos favoritos armazenados no localStorage
+  useEffect(() => {
+    const favs = JSON.parse(localStorage.getItem('favoritos')) || [];
+    setFavoriteIds(favs);
+  }, []);
+
+  useEffect(() => {
+    const fetchFavorites = async () => {
+      setLoading(true);
+      try {
+        const promises = favoriteIds.map((id) => getAcomodacaoById(id));
+        const responses = await Promise.all(promises);
+        const accommodationsData = responses.map((res) => res.data);
+        setFavorites(accommodationsData);
+      } catch (error) {
+        console.error('Erro ao buscar acomodações favoritas:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (favoriteIds.length > 0) {
+      fetchFavorites();
+    } else {
+      setFavorites([]);
+      setLoading(false);
+    }
+  }, [favoriteIds]);
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <h2 className="text-3xl font-bold mb-4">Meus Favoritos</h2>
+      {loading ? (
+        <Spinner />
+      ) : favorites.length === 0 ? (
+        <p className="text-gray-700">Você não possui acomodações favoritas.</p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {favorites.map((item) => (
+            <AccommodationCard key={item.id} acomodacao={item} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Favorites;
+
+```
+
+## src/pages/Home.jsx
+
+```
+// src/pages/Home.jsx
+import React, { useEffect, useState } from 'react';
+import { getAcomodacoes } from '../services/api';
+import Hero from '../components/Hero';
+import AccommodationCard from '../components/AccommodationCard';
+import Spinner from '../components/Spinner';
+
+const Home = () => {
+  const [acomodacoes, setAcomodacoes] = useState([]);
+  const [cidade, setCidade] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const fetchAcomodacoes = async () => {
+    setLoading(true);
+    try {
+      const response = await getAcomodacoes(cidade);
+      setAcomodacoes(response.data);
+    } catch (error) {
+      console.error('Erro ao buscar acomodações:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAcomodacoes();
+  }, [cidade]);
+
+  return (
+    <div className="w-full">
+      <Hero cidade={cidade} setCidade={setCidade} />
+      <section className="w-full px-4 py-8">
+        <h2 className="text-3xl font-bold mb-4">Acomodações Disponíveis</h2>
+        {loading ? (
+          <Spinner />
+        ) : acomodacoes.length === 0 ? (
+          <p className="text-gray-700">Nenhuma acomodação encontrada.</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {acomodacoes.map((item) => (
+              <AccommodationCard key={item.id} acomodacao={item} />
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+};
+
+export default Home;
+
+```
+
+## src/services/api.js
+
+```
+// src/services/api.js
+import axios from 'axios';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
+export const getAcomodacoes = (cidade) => {
+  const url = cidade 
+    ? `${API_BASE_URL}/acomodacoes?cidade=${cidade}` 
+    : `${API_BASE_URL}/acomodacoes`;
+  return axios.get(url);
+};
+
+export const getAcomodacaoById = (id) => {
+  return axios.get(`${API_BASE_URL}/acomodacoes/${id}`);
+};
+
+```
+
+## src/App.css
+
+```
+/* src/App.css */
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+/* Tailwind Directives */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+```
+
+## src/App.jsx
+
+```
+// src/App.jsx
+import React from 'react';
+import { Routes, Route } from 'react-router-dom';
+import Home from './pages/Home';
+import Favorites from './pages/Favorites';
+import AccommodationDetails from './pages/AccommodationDetails';
+import Layout from './components/Layout';
+import Navbar from './components/Navbar';
+import './App.css';
+
+function App() {
+  return (
+    <>
+      <Navbar />
+      <Layout>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/favoritos" element={<Favorites />} />
+          <Route path="/acomodacao/:id" element={<AccommodationDetails />} />
+        </Routes>
+      </Layout>
+    </>
+  );
+}
+
+export default App;
+
+```
+
+## src/index.css
+
+```
+/* src/index.css */
+
+/* Utilize apenas os diretivas do Tailwind para definir o estilo base */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+```
+
+## src/main.jsx
+
+```
+// src/main.jsx
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
+import App from './App';
+import './index.css';
+
+console.log("App iniciando...");
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  </React.StrictMode>
+);
+
+```
+
+## .env
+
+```
+VITE_API_URL=http://localhost:8000
+VITE_HMR_HOST=localhost
+
+```
+
+## Dockerfile
+
+```
+# Dockerfile para o front-end (React)
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copia os arquivos de package e instala as dependências
+COPY package.json package-lock.json ./
+RUN npm install
+
+# Copia o restante do código
+COPY . .
+
+EXPOSE 5173
+
+# Comando para ambiente de desenvolvimento
+CMD ["npm", "run", "dev"]
+
+
+```
+

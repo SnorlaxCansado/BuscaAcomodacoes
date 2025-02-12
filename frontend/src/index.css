@@ -1,0 +1,6 @@
+/* src/index.css */
+
+/* Utilize apenas os diretivas do Tailwind para definir o estilo base */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

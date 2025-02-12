@@ -1,0 +1,305 @@
+## app/routes/__init__.py
+
+```python
+
+```
+
+## app/routes/accommodations.py
+
+```python
+# app/routes/accommodations.py
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
+from typing import List, Optional
+from app import schemas, crud
+from app.dependencies import get_db
+
+router = APIRouter()
+
+@router.get("/", response_model=List[schemas.Acomodacao])
+async def read_acomodacoes(cidade: Optional[str] = Query(None, description="Filtrar por cidade"), db: Session = Depends(get_db)):
+    acomodacoes = crud.get_acomodacoes(db, cidade)
+    return acomodacoes
+
+@router.get("/{id}", response_model=schemas.Acomodacao)
+async def read_acomodacao(id: int, db: Session = Depends(get_db)):
+    db_acomodacao = crud.get_acomodacao(db, id)
+    if not db_acomodacao:
+        raise HTTPException(status_code=404, detail="Acomodação não encontrada")
+    return db_acomodacao
+
+@router.post("/", response_model=schemas.Acomodacao, status_code=201)
+async def create_acomodacao(acomodacao: schemas.AcomodacaoBase, db: Session = Depends(get_db)):
+    return crud.create_acomodacao(db, acomodacao)
+
+@router.put("/{id}", response_model=schemas.Acomodacao)
+async def update_acomodacao(id: int, acomodacao: schemas.AcomodacaoBase, db: Session = Depends(get_db)):
+    db_acomodacao = crud.update_acomodacao(db, id, acomodacao)
+    if not db_acomodacao:
+        raise HTTPException(status_code=404, detail="Acomodação não encontrada")
+    return db_acomodacao
+
+@router.delete("/{id}", response_model=schemas.Acomodacao)
+async def delete_acomodacao(id: int, db: Session = Depends(get_db)):
+    db_acomodacao = crud.delete_acomodacao(db, id)
+    if not db_acomodacao:
+        raise HTTPException(status_code=404, detail="Acomodação não encontrada")
+    return db_acomodacao
+
+```
+
+## app/__init__.py
+
+```python
+
+```
+
+## app/config.py
+
+_File not found_
+
+## app/create_tables.py
+
+```python
+# create_tables.py
+from app.database import engine, Base
+from app import models
+
+# Cria todas as tabelas definidas nos modelos
+Base.metadata.create_all(bind=engine)
+
+```
+
+## app/crud.py
+
+```python
+# app/crud.py
+from sqlalchemy.orm import Session
+from app import models, schemas
+
+def get_acomodacoes(db: Session, cidade: str = None):
+    """
+    Retorna todas as acomodações ou filtra por cidade se informado.
+    """
+    query = db.query(models.Acomodacao)
+    if cidade:
+        # ilike permite busca case-insensitive
+        query = query.filter(models.Acomodacao.cidade.ilike(f"%{cidade}%"))
+    return query.all()
+
+def get_acomodacao(db: Session, acomodacao_id: int):
+    """
+    Retorna uma única acomodação pelo ID.
+    """
+    return db.query(models.Acomodacao).filter(models.Acomodacao.id == acomodacao_id).first()
+
+def create_acomodacao(db: Session, acomodacao: schemas.AcomodacaoBase):
+    """
+    Cria uma nova acomodação.
+    """
+    db_acomodacao = models.Acomodacao(**acomodacao.dict())
+    db.add(db_acomodacao)
+    db.commit()
+    db.refresh(db_acomodacao)
+    return db_acomodacao
+
+def update_acomodacao(db: Session, acomodacao_id: int, acomodacao: schemas.AcomodacaoBase):
+    """
+    Atualiza uma acomodação existente.
+    """
+    db_acomodacao = get_acomodacao(db, acomodacao_id)
+    if not db_acomodacao:
+        return None
+    for key, value in acomodacao.dict().items():
+        setattr(db_acomodacao, key, value)
+    db.commit()
+    db.refresh(db_acomodacao)
+    return db_acomodacao
+
+def delete_acomodacao(db: Session, acomodacao_id: int):
+    """
+    Remove uma acomodação do banco de dados.
+    """
+    db_acomodacao = get_acomodacao(db, acomodacao_id)
+    if db_acomodacao:
+        db.delete(db_acomodacao)
+        db.commit()
+    return db_acomodacao
+
+```
+
+## app/database.py
+
+```python
+# app/database.py
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+
+# Para este exemplo, utilizaremos SQLite. Caso deseje usar outro banco, ajuste a URL.
+SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
+# Para outros bancos, a URL pode ser algo como:
+# SQLALCHEMY_DATABASE_URL = "postgresql://usuario:senha@localhost/nome_banco"
+
+# No caso do SQLite, precisamos do argumento abaixo:
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+)
+
+# Cria a fábrica de sessões
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Classe base para os modelos ORM
+Base = declarative_base()
+
+```
+
+## app/dependencies.py
+
+```python
+# app/dependencies.py
+from app.database import SessionLocal
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+```
+
+## app/main.py
+
+```python
+# app/main.py
+from fastapi import FastAPI
+from starlette.middleware.cors import CORSMiddleware
+
+from app.routes import accommodations
+from app.database import engine, Base
+from app import models
+
+# Cria as tabelas no banco de dados (caso ainda não existam)
+Base.metadata.create_all(bind=engine)
+
+# Instância do FastAPI
+app = FastAPI(title="API de Acomodações")
+
+# Defina as origens que poderão acessar este back-end.
+# Ajuste conforme necessário; se estiver usando localhost, inclua as portas.
+# Exemplo: http://localhost:5173 e/ou http://127.0.0.1:5173
+origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    # Se você estiver usando Docker Compose
+    # e quiser liberar para outras origens, adicione aqui.
+    # Exemplo: "http://localhost:3000" etc.
+]
+
+# Configura o CORS Middleware para inserir os cabeçalhos de CORS nas respostas.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,      # ou ["*"] para liberar geral (não recomendado em produção)
+    allow_credentials=True,
+    allow_methods=["*"],        # ou especifique ["GET", "POST", "PUT", "DELETE"]
+    allow_headers=["*"],        # Autoriza todos os cabeçalhos
+)
+
+# Rotas
+app.include_router(accommodations.router, prefix="/acomodacoes", tags=["Acomodações"])
+
+@app.get("/")
+async def root():
+    return {"message": "Bem-vindo à API de Acomodações"}
+
+```
+
+## app/models.py
+
+```python
+# app/models.py
+from sqlalchemy import Column, Integer, String, Float
+from app.database import Base
+
+class Acomodacao(Base):
+    __tablename__ = "acomodacoes"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    nome = Column(String, index=True, nullable=False)
+    cidade = Column(String, index=True, nullable=False)
+    preco = Column(Float, nullable=False)
+    imagem_url = Column(String, nullable=False)
+
+```
+
+## app/populate_data.py
+
+```python
+from sqlalchemy.orm import Session
+from app.database import SessionLocal, engine, Base
+from app.models import Acomodacao
+from faker import Faker
+import random
+
+# Garante que as tabelas estão criadas (caso ainda não existam)
+Base.metadata.create_all(bind=engine)
+
+# Instancia o Faker com a localidade para pt_BR (Brasil)
+fake = Faker('pt_BR')
+
+def gerar_acomodacao():
+    """
+    Gera um dicionário com dados fictícios para uma acomodação.
+    """
+    return {
+        "nome": fake.company() + " " + fake.word().capitalize(),
+        "cidade": fake.city(),
+        "preco": round(random.uniform(100.0, 500.0), 2),
+        "imagem_url": fake.image_url(width=640, height=480)
+    }
+
+def popular_acomodacoes(n=50):
+    """
+    Insere 'n' acomodações no banco de dados.
+    """
+    db: Session = SessionLocal()
+    try:
+        for _ in range(n):
+            dados = gerar_acomodacao()
+            acomodacao = Acomodacao(**dados)
+            db.add(acomodacao)
+        db.commit()
+        print(f"{n} acomodações foram inseridas com sucesso!")
+    except Exception as e:
+        db.rollback()
+        print("Ocorreu um erro durante a inserção:", e)
+    finally:
+        db.close()
+
+if __name__ == "__main__":
+    popular_acomodacoes(50)
+
+```
+
+## app/schemas.py
+
+```python
+# app/schemas.py
+from pydantic import BaseModel
+
+class AcomodacaoBase(BaseModel):
+    nome: str
+    cidade: str
+    preco: float
+    imagem_url: str
+
+class Acomodacao(AcomodacaoBase):
+    id: int
+
+    class Config:
+        from_attributes = True
+
+
+```
+

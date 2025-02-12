@@ -1,0 +1,27 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    environment:
+      # Variáveis de ambiente para o back-end (se necessário)
+      - ENVIRONMENT=development
+    # Se desejar, defina um nome de container para facilitar a comunicação
+    container_name: backend
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:5173"
+
+    volumes:
+      - ./frontend:/app
+    environment:
+      - NODE_ENV=development
+      # Configure a URL da API para que o front-end aponte para o container "backend"
+      - VITE_API_URL=http://localhost:8000
+    container_name: frontend
+    depends_on:
+      - backend

@@ -139,11 +139,13 @@ BuscaAcomodacoes/
    ```bash
    python app/populate_data.py
    ```
-6. Inicie o servidor:
+   Obs.: Não fiquei feliz com os imagens, nomes e cidades gerados pelo faker então substitui-os manualmente.
+   
+7. Inicie o servidor:
    ```bash
    uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
    ```
-7. Acesse a API em [http://localhost:8000/](http://localhost:8000/) e a documentação em [http://localhost:8000/docs](http://localhost:8000/docs).
+8. Acesse a API em [http://localhost:8000/](http://localhost:8000/) e a documentação em [http://localhost:8000/docs](http://localhost:8000/docs).
 
 #### Front-end
 
